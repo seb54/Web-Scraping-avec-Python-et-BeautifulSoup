@@ -1,6 +1,6 @@
 import requests # On importe la bibliothèque requests
 import sys
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup # On importe BeautifulSoup
 
 # URL de la page à scraper
 URL = "https://realpython.github.io/fake-jobs/"
@@ -30,29 +30,36 @@ except ValueError as e:
     print("Fin du programme")
     sys.exit(1)  # Ferme le programme en cas d'erreur
 
-# Titre principal avec couleur
+# Titre principal
 print(f"{cyan}Liste des offres d'emploi sur la page {URL}{reset}\n")
-
-# Pour chaque div "card-content", chercher le h2 avec la classe "title"
 
 for result in results:
     try:
+        # Pour chaque div "card-content", chercher le h2 avec la classe "title"
         job_title = result.find("h2", class_="title")
+
+        # Si on ne trouve pas ce h2, on affiche une erreur
         if job_title is None:
             raise ValueError("Aucune offre d'emploi trouvée. Vérifie qu'il y a bien un titre H2 ayant la classe 'title'")
         
+        # On cherche à présent le nom de la société
         job_company = result.find("h3", class_="subtitle")
+
+        # Si on ne trouve pas de nom de société dans l'offre, on affiche une erreur
         if job_company is None:
             raise ValueError(f"Aucun nom de société trouvé pour l'offre {job_title.text}. Vérifie qu'il y a bien un titre H3 ayant la classe 'subtitle'")
         
+        # On cherche les données de localisation de la société. Si on n'en trouve pas, on affiche une erreur
         job_location = result.find("p", class_="location")
         if job_location is None:
             raise ValueError(f"Aucune donnée de localisation trouvée pour l'offre {job_title.text}. Vérifie s'il y a bien un paragraphe ayant la classe 'location'")
         
+        # On cherche la date de publication de l'offre. Si on n'a pas de date, on affiche une erreur
         job_datetime = result.find("time")
         if job_datetime is None:
             raise ValueError(f"Aucune date trouvée pour l'offre {job_title.text}. Vérifie s'il y a bien une balise <time>")
         
+        # On récupère le href du lien pour postuler à l'offre. Si on n'en trouve pas, on affiche une erreur
         job_apply = result.find("a", string=lambda text: "Apply" in text, class_="card-footer-item")
         if job_apply is None:
             raise ValueError(f"Aucune lien trouvé pour postuler à l'offre {job_title.text}. Vérifie s'il y a bien un lien <a> ayant l'ancre 'Apply'")
@@ -67,3 +74,7 @@ for result in results:
         print(f"{red}Erreur : {e}{reset}")
         print("Fin du programme")
         sys.exit(1)  # Ferme le programme en cas d'erreur
+
+# On affiche le nombre d'offres trouvées
+jobs_number = len(results)
+print(f"Nombre d'offres trouvées et affichées : {jobs_number}")
