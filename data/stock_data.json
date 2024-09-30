@@ -1,0 +1,62 @@
+[
+    {
+        "symbol": "FUTU Futu Holdings Limited",
+        "price": "97.35 +11.67 (+13.62%)",
+        "change": "+11.67",
+        "change_percent": "+13.62%"
+    },
+    {
+        "symbol": "TAL TAL Education Group",
+        "price": "11.84 +1.03 (+9.58%)",
+        "change": "+1.03",
+        "change_percent": "+9.58%"
+    },
+    {
+        "symbol": "SNMYF Suncorp Group Limited",
+        "price": "11.40 +0.95 (+9.09%)",
+        "change": "+0.95",
+        "change_percent": "+9.09%"
+    },
+    {
+        "symbol": "LKNCY Luckin Coffee Inc.",
+        "price": "26.13 +2.13 (+8.87%)",
+        "change": "+2.13",
+        "change_percent": "+8.87%"
+    },
+    {
+        "symbol": "EMBVF Arca Continental, S.A.B. de C.V.",
+        "price": "9.64 +0.74 (+8.26%)",
+        "change": "+0.74",
+        "change_percent": "+8.26%"
+    },
+    {
+        "symbol": "DJT Trump Media & Technology Group Corp.",
+        "price": "15.97 +1.22 (+8.30%)",
+        "change": "+1.22",
+        "change_percent": "+8.30%"
+    },
+    {
+        "symbol": "DJTWW Trump Media & Technology Group Corp.",
+        "price": "10.26 +0.76 (+8.00%)",
+        "change": "+0.76",
+        "change_percent": "+8.00%"
+    },
+    {
+        "symbol": "ZIM ZIM Integrated Shipping Services Ltd.",
+        "price": "25.93 +1.69 (+6.97%)",
+        "change": "+1.69",
+        "change_percent": "+6.97%"
+    },
+    {
+        "symbol": "ZK ZEEKR Intelligent Technology Holding Limited",
+        "price": "22.39 +1.30 (+6.16%)",
+        "change": "+1.30",
+        "change_percent": "+6.16%"
+    },
+    {
+        "symbol": "RPD Rapid7, Inc.",
+        "price": "39.77 +2.41 (+6.45%)",
+        "change": "+2.41",
+        "change_percent": "+6.45%"
+    }
+]
