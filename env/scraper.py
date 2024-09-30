@@ -68,8 +68,22 @@ for result in results:
         print(f"{bold_start}{blue}Titre du job : {reset}{bold_start}{job_title.text.strip()}{bold_end}")
         print(f"{green}Société : {reset}{job_company.text.strip()}")
         print(f"{yellow}Localisation : {reset}{job_location.text.strip()}")
+
+        # On récupère l'url de l'offre
+        job_url = job_apply.get('href')
+
+        # On récupère le contenu de la div ayant la classe 'content'
+        URL_Description = f"{job_url}"
+        page_description = requests.get(URL_Description)
+        soup_description = BeautifulSoup(page_description.content, "html.parser")
+        results_description = soup_description.find("div", class_="content")
+
+        job_description = results_description.find("p")
+
+        #
+        print(f"{blue} Description de l'offre : {reset}{job_description.text.strip()}")
         print(f"{gray}Date de publication : {reset}{job_datetime.text.strip()}")
-        print(f"Postuler ici : {blue}{job_apply.get('href')}{reset}\n")
+        print(f"Postuler ici : {blue}{job_url}{reset}\n")
     except ValueError as e:
         print(f"{red}Erreur : {e}{reset}")
         print("Fin du programme")
