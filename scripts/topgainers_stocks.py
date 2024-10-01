@@ -16,8 +16,8 @@ USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36",
 ]
 
-# Initialiser une liste pour stocker les données récupérées
-data = []
+# Initialiser un dictionnaire pour stocker les données récupérées
+data = {}
 
 # URL de la première page à scraper
 url = "https://finance.yahoo.com/markets/stocks/gainers/?start=0&count=10"
@@ -44,27 +44,29 @@ def fetch_page(url, retries=3):
                 return None
 
 def parse_stock_data(soup):
-    """Parse les données des actions depuis la soupe HTML."""
-    stock_data = []
+    """Parse les données des actions"""
+    stock_data = {}
     table_rows = soup.find_all('tr', class_='row')
 
     for row in table_rows:
         cells = row.find_all('td')  # Récupère toutes les cellules <td> dans la ligne
         if len(cells) > 3:  # Vérifie si la ligne a au moins 4 cellules
             symbol = cells[0].text.strip()
-            price = cells[1].text.strip()
+            price_raw = cells[1].text.strip()  # Extrait le texte brut de la cellule contenant le prix
+            price = price_raw.split(' ')[0]  # Prend uniquement la première partie avant l'espace (le vrai prix)
             change = cells[2].text.strip()
             change_percent = cells[3].text.strip()
 
             stock_info = {
-                "symbol": symbol,
-                "price": price,
+                "price": price,  # Assigne uniquement le prix
                 "change": change,
                 "change_percent": change_percent
             }
 
-            stock_data.append(stock_info)
+            # Utiliser le symbole comme clé dans le dictionnaire
+            stock_data[symbol] = stock_info
     return stock_data
+
 
 def save_to_json(data, filename):
     """Sauvegarde les données dans un fichier JSON."""
@@ -84,11 +86,11 @@ def scrape_stocks(url):
     stock_data = parse_stock_data(soup)
 
     if stock_data:
-        data.extend(stock_data)
-        save_to_json(data, 'stock_data.json')
+        data.update(stock_data)  # Met à jour le dictionnaire avec les nouvelles données
+        save_to_json(data, '../data/stock_data.json')
 
-        # Convertir la liste en DataFrame pandas pour une meilleure lisibilité
-        df = pd.DataFrame(data)
+        # Convertir le dictionnaire en DataFrame pandas pour une meilleure lisibilité
+        df = pd.DataFrame.from_dict(data, orient='index')
         logging.info("Données scrappées avec succès.")
         print(df)
 
