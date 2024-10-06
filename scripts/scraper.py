@@ -1,91 +1,98 @@
-import requests # On importe la bibliothèque requests
+import requests
 import sys
-from bs4 import BeautifulSoup # On importe BeautifulSoup
+from bs4 import BeautifulSoup
+from typing import Optional
 
 # URL de la page à scraper
 URL = "https://realpython.github.io/fake-jobs/"
-page = requests.get(URL)
+ANSI_CODES = {
+    "bold_start": "\033[1m",
+    "bold_end": "\033[0m",
+    "red": "\033[91m",
+    "green": "\033[92m",
+    "yellow": "\033[93m",
+    "blue": "\033[94m",
+    "cyan": "\033[96m",
+    "gray": "\033[90m",
+    "reset": "\033[0m"
+}
 
-soup = BeautifulSoup(page.content, "html.parser")
 
-# Code ANSI pour le texte en gras et les couleurs
-bold_start = "\033[1m"
-bold_end = "\033[0m"
-red = "\033[91m"
-green = "\033[92m"
-yellow = "\033[93m"
-blue = "\033[94m"
-cyan = "\033[96m"
-gray = "\033[90m"
-
-reset = "\033[0m"  # Réinitialise les styles
-
-# Trouver toutes les div ayant la classe "card-content"
-try:
-    results = soup.find_all(class_="card-content")
-    if len(results) == 0:  # Vérifier si la liste des offres est vide
-        raise ValueError("Aucune offre d'emploi n'a pu être récupérée car aucune div ayant la classe 'card-content' n'a été trouvée")
-except ValueError as e:
-    print(f"{red}Erreur : {e}{reset}")
-    print("Fin du programme")
-    sys.exit(1)  # Ferme le programme en cas d'erreur
-
-# Titre principal
-print(f"{cyan}Liste des offres d'emploi sur la page {URL}{reset}\n")
-
-for result in results:
+def fetch_page_content(url: str) -> Optional[BeautifulSoup]:
     try:
-        # Pour chaque div "card-content", chercher le h2 avec la classe "title"
-        job_title = result.find("h2", class_="title")
+        response = requests.get(url)
+        response.raise_for_status()
+        return BeautifulSoup(response.content, "html.parser")
+    except requests.RequestException as e:
+        print(f"{ANSI_CODES['red']}Erreur lors de la requête : {e}{ANSI_CODES['reset']}")
+        return None
 
-        # Si on ne trouve pas ce h2, on affiche une erreur
-        if job_title is None:
-            raise ValueError("Aucune offre d'emploi trouvée. Vérifie qu'il y a bien un titre H2 ayant la classe 'title'")
-        
-        # On cherche à présent le nom de la société
-        job_company = result.find("h3", class_="subtitle")
 
-        # Si on ne trouve pas de nom de société dans l'offre, on affiche une erreur
-        if job_company is None:
-            raise ValueError(f"Aucun nom de société trouvé pour l'offre {job_title.text}. Vérifie qu'il y a bien un titre H3 ayant la classe 'subtitle'")
-        
-        # On cherche les données de localisation de la société. Si on n'en trouve pas, on affiche une erreur
-        job_location = result.find("p", class_="location")
-        if job_location is None:
-            raise ValueError(f"Aucune donnée de localisation trouvée pour l'offre {job_title.text}. Vérifie s'il y a bien un paragraphe ayant la classe 'location'")
-        
-        # On cherche la date de publication de l'offre. Si on n'a pas de date, on affiche une erreur
-        job_datetime = result.find("time")
-        if job_datetime is None:
-            raise ValueError(f"Aucune date trouvée pour l'offre {job_title.text}. Vérifie s'il y a bien une balise <time>")
-        
-        # On récupère le href du lien pour postuler à l'offre. Si on n'en trouve pas, on affiche une erreur
-        job_apply = result.find("a", string=lambda text: "Apply" in text, class_="card-footer-item")
-        if job_apply is None:
-            raise ValueError(f"Aucune lien trouvé pour postuler à l'offre {job_title.text}. Vérifie s'il y a bien un lien <a> ayant l'ancre 'Apply'")
-        
-        # On récupère l'url de l'offre
-        job_url = job_apply.get('href')
+def scrape_jobs(soup: BeautifulSoup):
+    results = soup.find_all(class_="card-content")
+    if len(results) == 0:
+        handle_error("Aucune offre d'emploi n'a pu être récupérée car aucune div ayant la classe 'card-content' n'a été trouvée")
+    return results
 
-        # On récupère le contenu de la div ayant la classe 'content'
-        URL_Description = f"{job_url}"
-        page_description = requests.get(URL_Description)
-        soup_description = BeautifulSoup(page_description.content, "html.parser")
-        results_description = soup_description.find("div", class_="content")
-        job_description = results_description.find("p")
-        
-        # Afficher les informations avec des couleurs
-        print(f"{bold_start}{blue}Titre du job : {reset}{bold_start}{job_title.text.strip()}{bold_end}")
-        print(f"{green}Société : {reset}{job_company.text.strip()}")
-        print(f"{yellow}Localisation : {reset}{job_location.text.strip()}")
-        print(f"{blue} Description de l'offre : {reset}{job_description.text.strip()}")
-        print(f"{gray}Date de publication : {reset}{job_datetime.text.strip()}")
-        print(f"Postuler ici : {blue}{job_url}{reset}\n")
-    except ValueError as e:
-        print(f"{red}Erreur : {e}{reset}")
-        print("Fin du programme")
-        sys.exit(1)  # Ferme le programme en cas d'erreur
 
-# On affiche le nombre d'offres trouvées
-jobs_number = len(results)
-print(f"Nombre d'offres trouvées et affichées : {jobs_number}")
+def extract_job_data(result) -> dict:
+    job_data = {}
+    job_data['title'] = get_element_text(result, "h2", "title", "Aucune offre d'emploi trouvée. Vérifie qu'il y a bien un titre H2 ayant la classe 'title'")
+    job_data['company'] = get_element_text(result, "h3", "subtitle", f"Aucun nom de société trouvé pour l'offre {job_data['title']}")
+    job_data['location'] = get_element_text(result, "p", "location", f"Aucune donnée de localisation trouvée pour l'offre {job_data['title']}")
+    job_data['datetime'] = get_element_text(result, "time", None, f"Aucune date trouvée pour l'offre {job_data['title']}")
+    job_apply_element = result.find("a", string=lambda text: "Apply" in text)
+    if not job_apply_element:
+        handle_error(f"Aucun lien trouvé pour postuler à l'offre {job_data['title']}")
+    job_data['apply_link'] = job_apply_element.get('href')
+    job_data['description'] = get_job_description(job_data['apply_link'])
+    return job_data
+
+
+def get_element_text(result, tag: str, class_name: Optional[str], error_message: str) -> str:
+    element = result.find(tag, class_=class_name) if class_name else result.find(tag)
+    if not element:
+        handle_error(error_message)
+    return element.text.strip()
+
+
+def get_job_description(url: str) -> str:
+    soup = fetch_page_content(url)
+    if not soup:
+        handle_error("Impossible de récupérer la description de l'offre")
+    result_description = soup.find("div", class_="content")
+    job_description = result_description.find("p") if result_description else None
+    return job_description.text.strip() if job_description else "Non disponible"
+
+
+def handle_error(message: str):
+    print(f"{ANSI_CODES['red']}Erreur : {message}{ANSI_CODES['reset']}")
+    sys.exit(1)
+
+
+def display_job_info(job_data: dict):
+    print(f"{ANSI_CODES['bold_start']}{ANSI_CODES['blue']}Titre du job : {ANSI_CODES['reset']}{job_data['title']}{ANSI_CODES['bold_end']}")
+    print(f"{ANSI_CODES['green']}Société : {ANSI_CODES['reset']}{job_data['company']}")
+    print(f"{ANSI_CODES['yellow']}Localisation : {ANSI_CODES['reset']}{job_data['location']}")
+    print(f"{ANSI_CODES['blue']} Description de l'offre : {ANSI_CODES['reset']}{job_data['description']}")
+    print(f"{ANSI_CODES['gray']}Date de publication : {ANSI_CODES['reset']}{job_data['datetime']}")
+    print(f"Postuler ici : {ANSI_CODES['blue']}{job_data['apply_link']}{ANSI_CODES['reset']}\n")
+
+
+def main():
+    soup = fetch_page_content(URL)
+    if not soup:
+        handle_error("Impossible de récupérer la page principale des offres d'emploi")
+
+    job_results = scrape_jobs(soup)
+    print(f"{ANSI_CODES['cyan']}Liste des offres d'emploi sur la page {URL}{ANSI_CODES['reset']}\n")
+
+    for result in job_results:
+        job_data = extract_job_data(result)
+        display_job_info(job_data)
+
+    print(f"Nombre d'offres trouvées et affichées : {len(job_results)}")
+
+
+if __name__ == "__main__":
+    main()

@@ -5,6 +5,7 @@ import json
 import time
 import logging
 from random import choice
+from typing import Optional
 
 # Configuration des logs
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -20,9 +21,9 @@ USER_AGENTS = [
 data = {}
 
 # URL de la première page à scraper
-url = "https://finance.yahoo.com/markets/stocks/gainers/?start=0&count=10"
+URL = "https://finance.yahoo.com/markets/stocks/gainers/?start=0&count=10"
 
-def fetch_page(url, retries=3):
+def fetch_page(url: str, retries: int = 3) -> Optional[BeautifulSoup]:
     """Effectue une requête HTTP et gère les erreurs avec des retries."""
     headers = {
         "User-Agent": choice(USER_AGENTS)
@@ -32,70 +33,64 @@ def fetch_page(url, retries=3):
         try:
             logging.info(f"Requête envoyée à {url}, tentative {attempt + 1}")
             response = requests.get(url, headers=headers)
-            response.raise_for_status()  # Si la requête échoue, une exception est levée
-            return response.content
-        except requests.exceptions.RequestException as e:
+            response.raise_for_status()
+            return BeautifulSoup(response.content, 'html.parser')
+        except requests.RequestException as e:
             logging.warning(f"Erreur lors de la requête : {e}")
             if attempt < retries - 1:
-                logging.info(f"Nouvelle tentative dans 2 secondes...")
+                logging.info("Nouvelle tentative dans 2 secondes...")
                 time.sleep(2)
             else:
                 logging.error("Échec après plusieurs tentatives.")
                 return None
 
-def parse_stock_data(soup):
+def parse_stock_data(soup: BeautifulSoup) -> dict:
     """Parse les données des actions"""
     stock_data = {}
     table_rows = soup.find_all('tr', class_='row')
 
     for row in table_rows:
-        cells = row.find_all('td')  # Récupère toutes les cellules <td> dans la ligne
-        if len(cells) > 3:  # Vérifie si la ligne a au moins 4 cellules
+        cells = row.find_all('td')
+        if len(cells) > 3:
             symbol = cells[0].text.strip()
-            price_raw = cells[1].text.strip()  # Extrait le texte brut de la cellule contenant le prix
-            price = price_raw.split(' ')[0]  # Prend uniquement la première partie avant l'espace (le vrai prix)
+            price = cells[1].text.strip().split(' ')[0]
             change = cells[2].text.strip()
             change_percent = cells[3].text.strip()
 
             stock_info = {
-                "price": price,  # Assigne uniquement le prix
+                "price": price,
                 "change": change,
                 "change_percent": change_percent
             }
 
-            # Utiliser le symbole comme clé dans le dictionnaire
             stock_data[symbol] = stock_info
     return stock_data
 
-
-def save_to_json(data, filename):
+def save_to_json(data: dict, filename: str):
     """Sauvegarde les données dans un fichier JSON."""
     with open(filename, 'w') as json_file:
         json.dump(data, json_file, indent=4)
     logging.info(f"Données exportées avec succès dans {filename}")
 
-def scrape_stocks(url):
+def scrape_stocks(url: str):
     """Scraper les données des actions depuis une URL spécifique."""
-    html_content = fetch_page(url)
-
-    if html_content is None:
+    soup = fetch_page(url)
+    if not soup:
         logging.error("Impossible de récupérer la page, arrêt du script.")
         return
 
-    soup = BeautifulSoup(html_content, 'html.parser')
     stock_data = parse_stock_data(soup)
-
     if stock_data:
-        data.update(stock_data)  # Met à jour le dictionnaire avec les nouvelles données
+        data.update(stock_data)
         save_to_json(data, '../data/stock_data.json')
 
-        # Convertir le dictionnaire en DataFrame pandas pour une meilleure lisibilité
         df = pd.DataFrame.from_dict(data, orient='index')
         logging.info("Données scrappées avec succès.")
         print(df)
 
-# Lancer le scraping
-scrape_stocks(url)
+def main():
+    scrape_stocks(URL)
+    time.sleep(2)
 
-# Pause pour éviter de surcharger le serveur lors de futures requêtes
-time.sleep(2)  # Pause de 2 secondes entre les requêtes si besoin
+if __name__ == "__main__":
+    main()
